@@ -2,9 +2,10 @@
 // @name           Google search thumbnail
 // @description    Google検索のサムネをopen.thumbshots.orgのに変える
 // @namespace      http://oflow.me/archives/59
-// @compatibility  Greasemonkey (Firefox), Scriptish (Firefox), NinjaKit 0.8.3 (Safari)
+// @compatibility  Greasemonkey (Firefox), Scriptish (Firefox), NinjaKit (Safari)
 // @include        https://www.google.com/search*
 // @include        https://www.google.com/webhp*
+// @include        https://www.google.com/#hl=*
 // @include        https://www.google.co.jp/search*
 // @include        https://www.google.co.jp/#
 // @include        https://www.google.co.jp/#sclient*
@@ -13,13 +14,16 @@
 // @include        https://www.google.co.jp/webhp*
 // @include        https://www.google.co.jp/search*
 // @include        https://www.google.co.jp/
-// @version        1.0.20120401
+// @version        1.0
+// @note           20120620
+//                 サムネクリックできるようにリンク追加
+//                 仕様変更に合わせてCSSを修正
 // @note           httpsの時だけ有効
 //                 (ただし画像取得はhttpなので信頼できるサイトの表示はなくなる)
 // @note           商品検索などでレビューがあったときサムネイルが表示されてなかったのを修正
-// @note           1.0.20111107
+// @note           20111107
 //                 サイトリンクが付いてる場合のCSSを修正
-// @note           1.0.20111024-2
+// @note           20111024-2
 //                 Google Search Number Favicon使用時でもサムネ付くように対応
 //                 AutoPagerize使用時に2ページ目以降サムネ付かなかったのを修正
 //                 NinjaKitのJSLintで怒られないように修正
@@ -38,20 +42,29 @@
         youtube: /www\.youtube\.com\/watch\?.*v=([a-zA-Z0-9\-]+)/
     };
 
-    var css = '.g.thumbshots img.thumb, .g.amazon img.thumb, .g.nicovideo img.thumb, .g.youtube img.thumb { width: 120px; height: 90px; position: absolute; display: inline-block; border: 3px solid #e5e5e5; margin-top: 0px; outline: 1px solid #ccc; z-index: 2;}';
-    css += '.g.amazon img.thumb { height: 120px; border-color: transparent; outline-width: 0; }';
-    css += '.g.youtube a img, .g.nicovideo a img { position: absolute; left: -33px; top: 70px; outline: 0; }';
-    css += '.g.youtube td[width="1%"], .g.nicovideo td[width="1%"] { position: absolute !important; }';
-    css += '.g.youtube td[width="1%"] > div, .g.nicovideo td[width="1%"] > div { overflow: visible !important; }';
-    css += '.g.youtube td[width="1%"] a > div > img, .g.nicovideo td[width="1%"] a > div > img { display: none !important; }';
-    css += '.g.youtube td[width="1%"] a > span { right: auto !important; left: -132px; z-index: 200; }';
-    css += '.g.youtube td[width="1%"] a, .g.nicovideo td[width="1%"] a { outline: none; }';
+    var css = '';
+    css += '.g.thumbshots { min-height: 95px; }';
+    css += '.g.thumbshots .thumb:active { outline: 1px solid #dd4b39; }';
+    css += '.g.thumbshots .thumb img { width: 120px; height: 90px; position: absolute; display: inline-block; border: 3px solid #e5e5e5; margin-top: 0px; outline: 1px solid #ccc; z-index: 2; }';
     css += '.g.thumbshots > .vsc, .g.thumbshots > .mbl { margin-left: 135px; }';
     css += '.g.thumbshots > .nrgt { margin-left: 155px; }';
-    css += '.g.thumbshots { min-height: 95px; }';
-    css += '.g.amazon { min-height: 125px; }';
+    // Amazonの商品画像は高さが違うので修正
+    css += '.g.amazon .thumb img { height: 120px; border-color: transparent; outline-width: 0; }';
+    css += '.g.amazon { min-height: 125px !important; }';
+    // 動画サムネの背景が黒になってたり枠線付いてるので消す
+    css += '.g.video .ts .th { overflow: visible !important; background: transparent !important; border: 0 !important; z-index: 200; }';
+    css += '.g.video .ts .th a { border: 0 !important; }';
+    // 本来のサムネ
+    css += '.g.video .ts td[width] { background: transparent !important; border: 0 !important; padding: 0 !important;}';
+    css += '.g.video .ts td[width] > div { position: absolute !important; width: 1px !important; height: 1px !important; }';
+    css += '.g.video img[class*="vidthumb"] { display: none !important; }';
+    // ► 3:20 とか時間表示は残す
+    css += '.g.video td > .th a span { position: absolute !imoportant; right: auto !important; left: -132px; z-index: 200; }';
+    // ～の他の動画≫
+    css += '.g.video .vsc + div { margin-top: 12px !important; }';
+    // 元々あるプレビューボタン(≫)を消す
+    // sig属性消してるのでクリックしても表示されない
     css += '.vspib, #vspb { display: none !important; }';
-    css += '.r > img { vertical-align: text-bottom; margin-right: 2px; }';
     var googleThumbnail = {
         init: function () {
             GM_addStyle(css);
@@ -89,7 +102,7 @@
         setWebnail: function (elm) {
             var vsc = elm.getElementsByClassName('vsc'),
                 length = vsc.length,
-                i, a, href, li, thumb;
+                i, a, href, li, thumb, img, anchor;
 
             for (i = 0; i < length; i += 1) {
                 // div.vscのsig属性を消すとプレビューでない
@@ -98,30 +111,32 @@
                     // vsc以外のクラスが付いてると元々サムネ付いてるはず
                     continue;
                 }
+                // a class="l"がなかったら多分違う
                 a = vsc[i].getElementsByClassName('l')[0];
                 if (!a) {
                     continue;
                 }
-                // href属性の変な文字ついてる事があったので消す
-                href = a.href.replace(/(?:^.*\/url\?q=|&sa=.+$)/, '');
+                if (a.hasAttribute('onmousedown')) {
+                    a.removeAttribute('onmousedown');
+                }
+                href = a.href;
 
                 li = vsc[i].parentNode;
-                // class="g" な時があるのでimgタグがあったらやめる
-                thumb = li.getElementsByTagName('img');
-                // imgタグがYoutubeだったりしたらやっぱり置き換える
-                // src="/images/nav..." → レビューの☆だったりする
-                if (thumb[0] && !/(?:youtube\.com|nicovideo\.jp)/.test(href) && !/(?:\/s2\/favicons|\/images\/nav)/.test(thumb[0].src)) {
+                // li class="videobox"がある場合はやめとく
+                if (li.className.indexOf('videobox') != -1) {
                     continue;
                 }
-                // class="g", "w0"がないで判断してたけどダメになった
-                // "videobox"がある場合はやめとく
-                if (li.className.indexOf('video') != -1) {
+                // 子要素にclass="vresult"がある場合はやめとく(動画の横並びの時など)
+                if (li.getElementsByClassName('vresult')[0]) {
                     continue;
                 }
+                // こっからは多分サムネ置き換えるのでクラス追加しとく
                 li.className += ' thumbshots';
 
-                var img = li.insertBefore(document.createElement('img'), vsc[i]);
-                img.className = 'thumb';
+                anchor = li.insertBefore(document.createElement('a'), vsc[i]);
+                anchor.href = href;
+                anchor.className = 'thumb';
+                img = anchor.appendChild(document.createElement('img'));
 
                 if (regexp.asin.test(href)) {
                     // アマゾンっぽかったら商品画像
@@ -131,12 +146,12 @@
                 } else if (regexp.youtube.test(href)) {
                     // Youtube
                     id = RegExp.$1;
-                    li.className += ' youtube';
+                    li.className += ' video youtube';
                     img.src = url.youtube.replace('%id%', id);
                 } else if (regexp.nicovideo.test(href)) {
                     // ニコニコ動画
                     id = RegExp.$1;
-                    li.className += ' nicovideo';
+                    li.className += ' video nicovideo';
                     img.src = url.nicovideo.replace('%id%', id).replace('%number%', (parseInt(id, 10) % 4 + 1));
                 } else {
                     // 他はopen.thumbshots.org
@@ -147,9 +162,9 @@
         },
         remove: function (elm) {
             elm.removeEventListener('load', this, false);
-            var li = elm.parentNode;
-            li.className = li.className.replace(/\s(?:gmthumb|amazon|thumbshots|nicovideo)/g, '');
-            li.removeChild(elm);
+            var li = elm.parentNode.parentNode;
+            li.className = li.className.replace(/\s(?:amazon|thumbshots|nicovideo)/g, '');
+            li.removeChild(elm.parentNode);
         }
     };
     googleThumbnail.init();
