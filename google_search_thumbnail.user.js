@@ -6,15 +6,26 @@
 // @include        https://www.google.com/search*
 // @include        https://www.google.com/webhp*
 // @include        https://www.google.com/#hl=*
+// @include        http://www.google.com/search*
+// @include        http://www.google.com/webhp*
+// @include        http://www.google.com/#hl=*
 // @include        https://www.google.co.jp/search*
+// @include        https://www.google.co.jp/webhp*
 // @include        https://www.google.co.jp/#
 // @include        https://www.google.co.jp/#sclient*
 // @include        https://www.google.co.jp/#q=*
 // @include        https://www.google.co.jp/#hl=*
-// @include        https://www.google.co.jp/webhp*
-// @include        https://www.google.co.jp/search*
 // @include        https://www.google.co.jp/
+// @include        http://www.google.co.jp/search*
+// @include        http://www.google.co.jp/webhp*
+// @include        http://www.google.co.jp/#
+// @include        http://www.google.co.jp/#sclient*
+// @include        http://www.google.co.jp/#q=*
+// @include        http://www.google.co.jp/#hl=*
+
 // @version        1.0
+// @note           20120711
+//                 httpsじゃない場合もあるので@include増やした
 // @note           20120620
 //                 サムネクリックできるようにリンク追加
 //                 仕様変更に合わせてCSSを修正
