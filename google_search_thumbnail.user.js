@@ -22,6 +22,7 @@
 // @include        http://www.google.co.jp/#sclient*
 // @include        http://www.google.co.jp/#q=*
 // @include        http://www.google.co.jp/#hl=*
+// @include        http://www.google.co.jp/
 
 // @version        1.0
 // @note           20120711
