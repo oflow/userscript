@@ -9,6 +9,7 @@
 // @include        http://www.google.com/search*
 // @include        http://www.google.com/webhp*
 // @include        http://www.google.com/#hl=*
+// @include
 // @include        https://www.google.co.jp/search*
 // @include        https://www.google.co.jp/webhp*
 // @include        https://www.google.co.jp/#
@@ -90,13 +91,15 @@
             switch (event.type) {
             case 'DOMNodeInserted':
                 if (elm.nodeName == 'LI' || elm.nodeName == 'OL') {
+                    // console.debug(elm.nodeName, elm.id, elm.className);
                     // Ajaxで追加         = LI
                     // AutoPagerizeで追加 = OL
                     this.setWebnail(elm);
-                } else if (elm.nodeName == 'DIV' && elm.className == 'vspi') {
-                    // どの場合これになるんだっけ…
+                } else if (elm.nodeName == 'DIV' && elm.id == 'ires') {
                     // console.debug(elm);
+                    // 2012-08-17 ajaxで追加
                     this.setWebnail(elm);
+
                 }
                 break;
             case 'unload':
