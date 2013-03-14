@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Google search thumbnail
-// @description    Google検索のサムネをopen.thumbshots.orgのに変える
+// @description    Google検索のサムネを別のやつに変える
 // @namespace      http://oflow.me/archives/59
 // @compatibility  Greasemonkey (Firefox), Scriptish (Firefox), NinjaKit (Safari)
 // @include        https://www.google.com/search*
@@ -9,7 +9,6 @@
 // @include        http://www.google.com/search*
 // @include        http://www.google.com/webhp*
 // @include        http://www.google.com/#hl=*
-// @include
 // @include        https://www.google.co.jp/search*
 // @include        https://www.google.co.jp/webhp*
 // @include        https://www.google.co.jp/#
@@ -26,6 +25,10 @@
 // @include        http://www.google.co.jp/
 
 // @version        1.0
+// @note           20130304
+//                 open.thumbshots.org から capture.heartrails.com に変更
+// @note           20120817
+//                 DOMNodeInsertedでdiv#iresを追加するように変わってたので対応
 // @note           20120711
 //                 httpsじゃない場合もあるので@include増やした
 // @note           20120620
@@ -43,7 +46,8 @@
 // ==/UserScript==
 (function () {
     var url = {
-        thumbshots: 'http://open.thumbshots.org/image.pxf?url=%url%',
+//        thumbshots: 'http://open.thumbshots.org/image.pxf?url=%url%',
+        thumbshots: 'http://capture.heartrails.com/120x90/?%url%',
         amazon: 'http://images-jp.amazon.com/images/P/%asin%.09._AA120_.jpg',
         youtube: 'http://i.ytimg.com/vi/%id%/default.jpg',
         nicovideo: 'http://tn-skr%number%.smilevideo.jp/smile?i=%id%'
@@ -170,7 +174,7 @@
                     img.src = url.nicovideo.replace('%id%', id).replace('%number%', (parseInt(id, 10) % 4 + 1));
                 } else {
                     // 他はopen.thumbshots.org
-                    // href = encodeURIComponent(href);
+                    href = encodeURIComponent(href);
                     img.src = url.thumbshots.replace('%url%', href);
                 }
             }
