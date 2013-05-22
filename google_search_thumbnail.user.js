@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name           Google search thumbnail
 // @description    Google検索のサムネを別のやつに変える
-// @namespace      http://oflow.me/archives/59
+// @namespace      http://oflow.me/archives/1066
 // @compatibility  Greasemonkey (Firefox), Scriptish (Firefox), NinjaKit (Safari)
+// @include        http://www.bing.com/search*
 // @include        https://www.google.com/search*
 // @include        https://www.google.com/webhp*
 // @include        https://www.google.com/#hl=*
@@ -26,6 +27,9 @@
 // @include        http://www.google.co.jp/
 
 // @version        1.0
+// @note           20130521
+//                 searchpreview.deを適当な方法で対応
+//                 Bingでもやや強引に表示
 // @note           20130430
 //                 Googleの仕様変更に対応
 //                 簡単にサムネ取得できる画像投稿サービス(twipple)追加
@@ -55,7 +59,7 @@
 // ==/UserScript==
 (function () {
     var url = {
-        thumbshots: 'https://searchpreview.de/preview?s=%url%',
+        thumbshots: 'https://%[w]%.searchpreview.de/preview?s=%url%',
         amazon: 'http://images-jp.amazon.com/images/P/%asin%.09._AA120_.jpg',
         youtube: 'http://i.ytimg.com/vi/%id%/default.jpg',
         nicovideo: 'http://tn-skr%number%.smilevideo.jp/smile?i=%id%',
@@ -71,36 +75,63 @@
 
     var css = '';
     // 高さ調整
-    css += '.g.thumbshots,';
-    css += '.g.thumbshots > .vsc { min-height: 93px; }';
+    css += '.thumbshots,';
+    css += '.thumbshots > .vsc { min-height: 93px; }';
     // 画像の枠とかは他のボタンと同じような感じ
-    css += '.g.thumbshots .thumb img { width: 111px; height: 82px; position: absolute; display: inline-block; border: 3px solid #f1f1f1; outline: 1px solid #d5d5d5; margin-top: 3px; z-index: 2; }';
-    css += '.g.thumbshots .thumb:hover img { outline-color: #c1c1c1; }';
-    css += '.g.thumbshots .thumb:active img { outline-color: #4d90fe; }';
+    css += '.thumbshots .thumb img { width: 111px; height: 82px; position: absolute; display: inline-block; border: 3px solid #f1f1f1; outline: 1px solid #d5d5d5; margin-top: 3px; z-index: 2; }';
+    css += '.thumbshots .thumb:hover img { outline-color: #c1c1c1; }';
+    css += '.thumbshots .thumb:active img { outline-color: #4d90fe; }';
     // 画像挿入するので位置調整
-    css += '.g.thumbshots > .rc,';
-    css += '.g.thumbshots > .vsc,';
-    css += '.g.thumbshots > .mbl { margin-left: 126px; }';
+    css += '.thumbshots > .rc,';
+    css += '.thumbshots > .vsc,';
+    css += '.thumbshots > .sa_cc,';
+    css += '.thumbshots > .mbl { margin-left: 126px; }';
     // サイトリンクの位置調整
-    css += '.g.thumbshots > .nrgt { margin-left: 135px; }';
+    css += '.thumbshots > .nrgt { margin-left: 135px; }';
     // Amazonの商品画像は高さが違うので調整
-    css += '.g.amazon .thumb img { height: 120px; border-color: transparent; outline-width: 0; }';
-    css += '.g.amazon { min-height: 125px !important; }';
+    css += '.amazon .thumb img { height: 120px; border-color: transparent; outline-width: 0; }';
+    css += '.amazon { min-height: 125px !important; }';
     // 画像投稿サービス
-    css += '.g.photo .thumb img { width: auto; height: auto; max-width: 111px; max-height: 93px; }';
+    css += '.photo .thumb img { width: auto; height: auto; max-width: 111px; max-height: 93px; }';
     // 動画サムネの背景が黒になってたり枠線付いてるので消す
-    css += '.g.video .s .th { overflow: visible !important; background: transparent !important; border: 0 !important; z-index: 200; }';
-    css += '.g.video .s .th a { border: 0 !important; }';
+    css += '.video .s .th { overflow: visible !important; background: transparent !important; border: 0 !important; z-index: 200; }';
+    css += '.video .s .th a { border: 0 !important; }';
     // 本来のサムネを消す
-    css += '.g.video .th img { display: none !important; }';
+    css += '.video .th img { display: none !important; }';
     // ► 3:20 とか時間表示は残す
-    css += '.g.video .th .vdur { position: absolute !imoportant; right: auto !important; left: -123px; margin-bottom: 3px; z-index: 200; }';
+    css += '.video .th .vdur { position: absolute !imoportant; right: auto !important; left: -123px; margin-bottom: 3px; z-index: 200; }';
     // 動画用の位置調整
-    css += '.g.video .s > div { position: absolute !important; margin-left: 0 !important; }';
-    css += '.g.video img[class*="vidthumb"] { display: none !important; }';
+    css += '.video .s > div { position: absolute !important; margin-left: 0 !important; }';
+    css += '.video img[class*="vidthumb"] { display: none !important; }';
     // ～の他の動画≫
-    css += '.g.video .vsc + div { margin-top: 12px !important; }';
+    css += '.video .vsc + div { margin-top: 12px !important; }';
 
+    var bingThumbnail = {
+        init: function () {
+            GM_addStyle(css);
+            //document.body.addEventListener('DOMNodeInserted', this, false);
+            //window.addEventListener('unload', this, false);
+            this.checkResult(document.body);
+        },
+        checkResult: function (elm) {
+            var result = document.getElementById('results'),
+                sa = result.getElementsByTagName('li'),
+                length = sa.length,
+                li, i, a;
+
+            for (i = 0; i < length; i += 1) {
+                li = sa[i];
+                if (li.className.indexOf('sa_') == -1) {
+                    continue;
+                }
+                a = li.getElementsByTagName('a')[0];
+                if (!a) {
+                    continue;
+                }
+                googleThumbnail.setWebnail(li, a.href);
+            }
+        }
+    };
     var googleThumbnail = {
         init: function () {
             GM_addStyle(css);
@@ -139,13 +170,14 @@
         checkResult: function (elm) {
             var g = elm.getElementsByClassName('g'),
                 length = g.length,
-                i, a, li;
+                i, a, li, div;
 
             // li.g > a > img.thumbshots
             // li.g > div.vsc > h3
             for (i = 0; i < length; i += 1) {
                 li = g[i];
                 // .g に id, 他のclass が付いてたらたぶん違う
+                // #newsbox, #imagebox_bigimages
                 if (li.id || li.className != 'g') {
                     continue;
                 }
@@ -157,13 +189,22 @@
                 if (a.hasAttribute('onmousedown')) {
                     a.setAttribute('onmousedown', '');
                 }
-                // li.videobox がある場合はやめとく
-                if (li.className.indexOf('videobox') != -1) {
-                    continue;
-                }
-                // 子要素にclass="vresult"がある場合はやめとく(動画の横並びの時など)
+                // 子要素に div.vresult がある場合はやめとく(動画の横並びの時など
                 if (li.getElementsByClassName('vresult')[0]) {
                     continue;
+                }
+                // 子要素に div.vsc.vslru がある場合はたぶん地図付き
+                div = li.getElementsByTagName('div')[0];
+                if (!div) {
+                    continue;
+                } else if (div.className == 'vsc') {
+                    // .vslru は後でつく
+                    if (div.getAttribute('data-extra')) {
+                        if (div.getAttribute('data-extra').indexOf('ludocid') != -1) {
+                            a = li.getElementsByTagName('a')[1];
+                            li.removeAttribute('style');
+                        }
+                    }
                 }
 
                 this.setWebnail(li, a.href);
@@ -177,7 +218,6 @@
 
             a.href = href;
             a.className = 'thumb';
-            li.className += ' bb';
             if (regexp.asin.test(href)) {
                 // アマゾンっぽかったら商品画像
                 li.className += ' amazon';
@@ -203,9 +243,8 @@
                 }
                 // 他はサムネ追加
                 href = encodeURIComponent(href);
-                // w = w.charAt(Math.floor(Math.random() * 24));
-                // url.thumbshots.replace('%[w]%', w);
-                img.src = url.thumbshots.replace('%url%', href);
+                w = w.charAt(Math.floor(Math.random() * 24));
+                img.src = url.thumbshots.replace('%url%', href).replace('%[w]%', w);
             }
 
             a.appendChild(img);
@@ -219,5 +258,10 @@
             li.removeChild(elm.parentNode);
         }
     };
-    googleThumbnail.init();
+    if (location.href.indexOf('http://www.bing.com/') != -1) {
+        bingThumbnail.init();
+    }
+    if (location.href.indexOf('www.google.') != -1) {
+        googleThumbnail.init();
+    }
 })();
