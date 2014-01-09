@@ -27,6 +27,8 @@
 // @include        http://www.google.co.jp/
 
 // @version        1.0
+// @note           20140109
+//                 サイトリンク付きがずれるのでCSS修正
 // @note           20130521
 //                 searchpreview.deを適当な方法で対応
 //                 Bingでもやや強引に表示
@@ -74,6 +76,8 @@
     };
 
     var css = '';
+    //css += '.ab_tnav_wrp,';
+    //css += '.mw #center_col { margin-left: 40px !important; }';
     // 高さ調整
     css += '.thumbshots,';
     css += '.thumbshots > .vsc { min-height: 93px; }';
@@ -83,11 +87,17 @@
     css += '.thumbshots .thumb:active img { outline-color: #4d90fe; }';
     // 画像挿入するので位置調整
     css += '.thumbshots > .rc,';
+    css += '.thumbshots > div:not([class]),'
     css += '.thumbshots > .vsc,';
     css += '.thumbshots > .sa_cc,';
     css += '.thumbshots > .mbl { margin-left: 126px; }';
     // サイトリンクの位置調整
-    css += '.thumbshots > .nrgt { margin-left: 135px; }';
+    css += '.thumbshots > div > .nrgt { margin-left: 10px !important; width: 420px !important; }';
+    // サイトリンクの幅調整
+    css += '.thumbshots .mslg .vsc { width: 200px !important; }';
+    css += '.thumbshots .mslg .vsc .st { width: 190px !important; }';
+    // Yahoo
+    css += '.thumbshots > .hd, .thumbshots > .bd { margin-left: 126px; }';
     // Amazonの商品画像は高さが違うので調整
     css += '.amazon .thumb img { height: 120px; border-color: transparent; outline-width: 0; }';
     css += '.amazon { min-height: 125px !important; }';
