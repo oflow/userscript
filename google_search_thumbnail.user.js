@@ -21,7 +21,7 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.3
+// @version        1.0.4
 // ==/UserScript==
 
 /*
@@ -29,6 +29,7 @@
  *     @grant GM_addStyle 追加
  *     各国のgoogleに対応できるように@includeをgoogle.tldに変更
  *     ニュース検索で画像が2重に表示されるの修正したつもり
+ *     誰も使ってなさそうなbing検索がid,class変わってたので対応
  * 20140109
  *     サイトリンク付きがずれるのでCSS修正
  * 20130521
@@ -98,7 +99,8 @@
         .thumbshots > .rc,\
         .thumbshots > div:not([class]),\
         .thumbshots > .vsc,\
-        .thumbshots > .sa_cc,\
+        .thumbshots.b_algo > h2,\
+        .thumbshots.b_algo > div,\
         .thumbshots > .ts,\
         .thumbshots > .mbl {\
             margin-left: 126px;\
@@ -150,6 +152,7 @@
         .video .vsc + div { margin-top: 12px !important; }\
     '.replace(/\s+/g, ' ');
 
+
     var bingThumbnail = {
         init: function () {
             GM_addStyle(css);
@@ -158,21 +161,14 @@
             this.checkResult(document.body);
         },
         checkResult: function (elm) {
-            var result = document.getElementById('results'),
-                sa = result.getElementsByTagName('li'),
-                length = sa.length,
-                li, i, a;
-
-            for (i = 0; i < length; i += 1) {
-                li = sa[i];
-                if (li.className.indexOf('sa_') == -1) {
-                    continue;
-                }
-                a = li.getElementsByTagName('a')[0];
+            var a, li = elm.querySelectorAll('#b_results > .b_algo');
+            for (i = 0; i < li.length; i += 1) {
+                a = li[i].getElementsByTagName('a')[0];
                 if (!a) {
                     continue;
                 }
-                googleThumbnail.setWebnail(li, a.href);
+                console.log(a.href);
+                googleThumbnail.setWebnail(li[i], a.href);
             }
         }
     };
@@ -306,7 +302,7 @@
             li.removeChild(elm.parentNode);
         }
     };
-    if (location.href.indexOf('http://www.bing.com/') != -1) {
+    if (location.href.indexOf('www.bing.com') != -1) {
         bingThumbnail.init();
     }
     if (location.href.indexOf('www.google.') != -1) {
