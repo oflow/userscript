@@ -2,31 +2,29 @@
 // @name           Google search thumbnail
 // @description    Google検索のサムネを別のやつに変える
 // @namespace      http://oflow.me/archives/1066
-// @compatibility  Greasemonkey (Firefox), Scriptish (Firefox), NinjaKit (Safari)
+// @compatibility  Firefox 31 (Scriptish), Chrome 37 (Tampermonkey)
 // @include        http://www.bing.com/search*
-// @include        https://www.google.com/search*
-// @include        https://www.google.com/webhp*
-// @include        https://www.google.com/#hl=*
-// @include        http://www.google.com/search*
-// @include        http://www.google.com/webhp*
-// @include        http://www.google.com/#hl=*
-// @include        https://www.google.co.jp/search*
-// @include        https://www.google.co.jp/webhp*
-// @include        https://www.google.co.jp/#
-// @include        https://www.google.co.jp/#sclient*
-// @include        https://www.google.co.jp/#safe*
-// @include        https://www.google.co.jp/#q=*
-// @include        https://www.google.co.jp/#hl=*
-// @include        https://www.google.co.jp/
-// @include        http://www.google.co.jp/search*
-// @include        http://www.google.co.jp/webhp*
-// @include        http://www.google.co.jp/#
-// @include        http://www.google.co.jp/#sclient*
-// @include        http://www.google.co.jp/#q=*
-// @include        http://www.google.co.jp/#hl=*
-// @include        http://www.google.co.jp/
+// @include        https://www.google.tld/search*
+// @include        https://www.google.tld/webhp*
+// @include        https://www.google.tld/#
+// @include        https://www.google.tld/#sclient*
+// @include        https://www.google.tld/#safe*
+// @include        https://www.google.tld/#q=*
+// @include        https://www.google.tld/#hl=*
+// @include        https://www.google.tld/
+// @include        http://www.google.tld/search*
+// @include        http://www.google.tld/webhp*
+// @include        http://www.google.tld/#
+// @include        http://www.google.tld/#sclient*
+// @include        http://www.google.tld/#safe*
+// @include        http://www.google.tld/#q=*
+// @include        http://www.google.tld/#hl=*
+// @include        http://www.google.tld/
 
-// @version        1.0
+// @version        1.0.2
+// @note           20140922
+//                 各国のgoogleに対応できるように@includeをgoogle.tldに変更
+//                 ニュース検索で画像が2重に表示されるの修正したつもり
 // @note           20140109
 //                 サイトリンク付きがずれるのでCSS修正
 // @note           20130521
@@ -75,46 +73,78 @@
         twipple: /p\.twipple\.jp\/([a-zA-Z0-9]+)/
     };
 
-    var css = '';
-    //css += '.ab_tnav_wrp,';
-    //css += '.mw #center_col { margin-left: 40px !important; }';
-    // 高さ調整
-    css += '.thumbshots,';
-    css += '.thumbshots > .vsc { min-height: 93px; }';
-    // 画像の枠とかは他のボタンと同じような感じ
-    css += '.thumbshots .thumb img { width: 111px; height: 82px; position: absolute; display: inline-block; border: 3px solid #f1f1f1; outline: 1px solid #d5d5d5; margin-top: 3px; z-index: 2; }';
-    css += '.thumbshots .thumb:hover img { outline-color: #c1c1c1; }';
-    css += '.thumbshots .thumb:active img { outline-color: #4d90fe; }';
-    // 画像挿入するので位置調整
-    css += '.thumbshots > .rc,';
-    css += '.thumbshots > div:not([class]),'
-    css += '.thumbshots > .vsc,';
-    css += '.thumbshots > .sa_cc,';
-    css += '.thumbshots > .mbl { margin-left: 126px; }';
-    // サイトリンクの位置調整
-    css += '.thumbshots > div > .nrgt { margin-left: 10px !important; width: 420px !important; }';
-    // サイトリンクの幅調整
-    css += '.thumbshots .mslg .vsc { width: 200px !important; }';
-    css += '.thumbshots .mslg .vsc .st { width: 190px !important; }';
-    // Yahoo
-    css += '.thumbshots > .hd, .thumbshots > .bd { margin-left: 126px; }';
-    // Amazonの商品画像は高さが違うので調整
-    css += '.amazon .thumb img { height: 120px; border-color: transparent; outline-width: 0; }';
-    css += '.amazon { min-height: 125px !important; }';
-    // 画像投稿サービス
-    css += '.photo .thumb img { width: auto; height: auto; max-width: 111px; max-height: 93px; }';
-    // 動画サムネの背景が黒になってたり枠線付いてるので消す
-    css += '.video .s .th { overflow: visible !important; background: transparent !important; border: 0 !important; z-index: 200; }';
-    css += '.video .s .th a { border: 0 !important; }';
-    // 本来のサムネを消す
-    css += '.video .th img { display: none !important; }';
-    // ► 3:20 とか時間表示は残す
-    css += '.video .th .vdur { position: absolute !imoportant; right: auto !important; left: -123px; margin-bottom: 3px; z-index: 200; }';
-    // 動画用の位置調整
-    css += '.video .s > div { position: absolute !important; margin-left: 0 !important; }';
-    css += '.video img[class*="vidthumb"] { display: none !important; }';
-    // ～の他の動画≫
-    css += '.video .vsc + div { margin-top: 12px !important; }';
+    var css = '\
+         /* 高さ調整 */\
+        .thumbshots,\
+        .thumbshots > .vsc {\
+            min-height: 93px;\
+        }\
+        /* 画像の枠とかは他のボタンと同じような感じ */\
+        .thumbshots .thumb img {\
+            width: 111px; height: 82px;\
+            position: absolute; display: inline-block;\
+            border: 3px solid #f1f1f1; outline: 1px solid #d5d5d5;\
+            margin-top: 3px; z-index: 2;\
+        }\
+        /* img:hover */\
+        .thumbshots .thumb:hover img { outline-color: #c1c1c1; }\
+        /* img:active */\
+        .thumbshots .thumb:active img { outline-color: #4d90fe; }\
+        /* 画像挿入するので位置調整 */\
+        .thumbshots > .rc,\
+        .thumbshots > div:not([class]),\
+        .thumbshots > .vsc,\
+        .thumbshots > .sa_cc,\
+        .thumbshots > .ts,\
+        .thumbshots > .mbl {\
+            margin-left: 126px;\
+        }\
+        /* サイトリンクの位置調整 */\
+        .thumbshots > div > .nrgt {\
+            margin-left: 10px !important; width: 420px !important;\
+        }\
+        /* サイトリンクの幅調整 */\
+        .thumbshots .mslg .vsc {\
+            width: 200px !important;\
+        }\
+        .thumbshots .mslg .vsc .st {\
+            width: 190px !important;\
+        }\
+        /* Yahoo */\
+        .thumbshots > .hd, .thumbshots > .bd {\
+            margin-left: 126px;\
+        }\
+        /* Amazonの商品画像は高さが違うので調整 */\
+        .amazon .thumb img {\
+            height: 120px; border-color: transparent; outline-width: 0;\
+        }\
+        .amazon {\
+            min-height: 125px !important;\
+        }\
+        /* 画像投稿サービス */\
+        .photo .thumb img {\
+            width: auto; height: auto; max-width: 111px; max-height: 93px;\
+        }\
+        /* 動画サムネの背景が黒になってたり枠線付いてるので消す */\
+        .video .s .th {\
+            overflow: visible !important;\
+            background: transparent !important; border: 0 !important; z-index: 200;\
+        }\
+        .video .s .th a { border: 0 !important; }\
+        /* 本来のサムネを消す */\
+        .video .th img { display: none !important; }\
+        /* ► 3:20 とか時間表示は残す */\
+        .video .th .vdur {\
+            position: absolute !imoportant;\
+            right: auto !important; left: -123px;\
+            margin-bottom: 3px; z-index: 200;\
+        }\
+        /* 動画用の位置調整 */\
+        .video .s > div { position: absolute !important; margin-left: 0 !important; }\
+        .video img[class*="vidthumb"] { display: none !important; }\
+        /* ～の他の動画≫ */\
+        .video .vsc + div { margin-top: 12px !important; }\
+    '.replace(/\s+/g, ' ');
 
     var bingThumbnail = {
         init: function () {
@@ -193,6 +223,10 @@
                 }
                 a = li.getElementsByTagName('a')[0];
                 if (!a) {
+                    continue;
+                }
+                // ニュース検索したときに画像が付いてたらやめる
+                if (a.getElementsByTagName('img')[0]) {
                     continue;
                 }
                 // onmosedown は削除しないで空にしとく
