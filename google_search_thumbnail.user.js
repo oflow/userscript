@@ -1,8 +1,8 @@
-// ==UserScript==
+﻿// ==UserScript==
 // @name           Google search thumbnail
 // @description    Google検索のサムネを別のやつに変える
 // @namespace      http://oflow.me/archives/1066
-// @compatibility  Firefox 31 (Scriptish), Chrome 37 (Tampermonkey)
+// @compatibility  Firefox 31 (Greasemonkey), Chrome 37 (Tampermonkey)
 // @include        http://www.bing.com/search*
 // @include        https://www.google.tld/search*
 // @include        https://www.google.tld/webhp*
@@ -20,43 +20,47 @@
 // @include        http://www.google.tld/#q=*
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
-
-// @version        1.0.2
-// @note           20140922
-//                 各国のgoogleに対応できるように@includeをgoogle.tldに変更
-//                 ニュース検索で画像が2重に表示されるの修正したつもり
-// @note           20140109
-//                 サイトリンク付きがずれるのでCSS修正
-// @note           20130521
-//                 searchpreview.deを適当な方法で対応
-//                 Bingでもやや強引に表示
-// @note           20130430
-//                 Googleの仕様変更に対応
-//                 簡単にサムネ取得できる画像投稿サービス(twipple)追加
-//                 ニコニコ動画のスパムくさいサイトうざいな
-// @note           20130304
-//                 open.thumbshots.org から searchpreview.de に変更
-// @note           20120817
-//                 DOMNodeInsertedでdiv#iresを追加するように変わってたので対応
-// @note           20120711
-//                 httpsじゃない場合もあるので@include増やした
-// @note           20120620
-//                 サムネクリックできるようにリンク追加
-//                 仕様変更に合わせてCSSを修正
-// @note           httpsの時だけ有効
-//                 (ただし画像取得はhttpなので信頼できるサイトの表示はなくなる)
-// @note           商品検索などでレビューがあったときサムネイルが表示されてなかったのを修正
-// @note           20111107
-//                 サイトリンクが付いてる場合のCSSを修正
-// @note           20111024-2
-//                 Google Search Number Favicon使用時でもサムネ付くように対応
-//                 AutoPagerize使用時に2ページ目以降サムネ付かなかったのを修正
-//                 NinjaKitのJSLintで怒られないように修正
-//
-// @memo           li.g > div.vsc が li.g > div.rc になってる
-//                 インスタントプレビューなくなったかもしれん
-
+// @grant          GM_addStyle
+// @version        1.0.3
 // ==/UserScript==
+
+/*
+ * 20140922
+ *     @grant GM_addStyle 追加
+ *     各国のgoogleに対応できるように@includeをgoogle.tldに変更
+ *     ニュース検索で画像が2重に表示されるの修正したつもり
+ * 20140109
+ *     サイトリンク付きがずれるのでCSS修正
+ * 20130521
+ *     searchpreview.deを適当な方法で対応
+ *     Bingでもやや強引に表示
+ * 20130430
+ *     Googleの仕様変更に対応
+ *     簡単にサムネ取得できる画像投稿サービス(twipple)追加
+ *     ニコニコ動画のスパムくさいサイトうざいな
+ * 20130304
+ *     open.thumbshots.org から searchpreview.de に変更
+ * 20120817
+ *     DOMNodeInsertedでdiv#iresを追加するように変わってたので対応
+ * 20120711
+ *     httpsじゃない場合もあるので@include増やした
+ * 20120620
+ *     サムネクリックできるようにリンク追加
+ *     仕様変更に合わせてCSSを修正
+ *     httpsの時だけ有効
+ *     (ただし画像取得はhttpなので信頼できるサイトの表示はなくなる)
+ *     商品検索などでレビューがあったときサムネイルが表示されてなかったのを修正
+ * 20111107
+ *     サイトリンクが付いてる場合のCSSを修正
+ * 20111024-2
+ *     Google Search Number Favicon使用時でもサムネ付くように対応
+ *     AutoPagerize使用時に2ページ目以降サムネ付かなかったのを修正
+ *     NinjaKitのJSLintで怒られないように修正
+ * @memo
+ *     li.g > div.vsc が li.g > div.rc になってる
+ *     インスタントプレビューなくなったかもしれん
+ */
+
 (function () {
     var url = {
         thumbshots: 'https://%[w]%.searchpreview.de/preview?s=%url%',
