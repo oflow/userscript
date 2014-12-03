@@ -188,9 +188,10 @@
                     // Ajaxで追加         = LI
                     // AutoPagerizeで追加 = OL
                     this.checkResult(elm);
-                } else if (elm.nodeName == 'DIV' && elm.id == 'ires') {
+                } else if (elm.nodeName == 'DIV' && (elm.getAttribute('data-ved') || elm.id == 'ires')) {
                     // console.debug(elm);
                     // 2012-08-17 ajaxで追加
+                    // 2014-10-31 div[data-ved="hogehoge"]になった
                     this.checkResult(elm);
 
                 }
