@@ -21,10 +21,12 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.4
+// @version        1.0.5
 // ==/UserScript==
 
 /*
+ * 20150215
+ *     AutoPagerizeを使っているとき2ページ目以降にサムネイル付かないのを修正
  * 20140922
  *     @grant GM_addStyle 追加
  *     各国のgoogleに対応できるように@includeをgoogle.tldに変更
@@ -209,7 +211,7 @@
             }
         },
         checkResult: function (elm) {
-            var g = elm.getElementsByClassName('g'),
+            var g = (elm.className == 'g' ? [elm] : elm.getElementsByClassName('g')),
                 length = g.length,
                 i, a, li, div;
 
