@@ -2,7 +2,7 @@
 // @name           Google search thumbnail
 // @description    Google検索のサムネを別のやつに変える
 // @namespace      http://oflow.me/archives/1066
-// @compatibility  Firefox 31 (Greasemonkey), Chrome 37 (Tampermonkey)
+// @compatibility  Firefox 31-39 (Greasemonkey), Chrome 37 (Tampermonkey)
 // @include        http://www.bing.com/search*
 // @include        https://www.google.tld/search*
 // @include        https://www.google.tld/webhp*
@@ -21,10 +21,12 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.5
+// @version        1.0.6
 // ==/UserScript==
 
 /*
+ * 20150724
+ *     AutoPagerizeを使っているとき2ページ目以降にサムネイル付かないのをまた修正
  * 20150215
  *     AutoPagerizeを使っているとき2ページ目以降にサムネイル付かないのを修正
  * 20140922
@@ -190,10 +192,11 @@
                     // Ajaxで追加         = LI
                     // AutoPagerizeで追加 = OL
                     this.checkResult(elm);
-                } else if (elm.nodeName == 'DIV' && (elm.getAttribute('data-ved') || elm.id == 'ires')) {
+                } else if (elm.nodeName == 'DIV' && (elm.getAttribute('data-ved') || elm.id == 'ires' || elm.className == 'g')) {
                     // console.debug(elm);
                     // 2012-08-17 ajaxで追加
                     // 2014-10-31 div[data-ved="hogehoge"]になった
+                    // 2015-07-24 AutoPagerizeで div.g が追加される
                     this.checkResult(elm);
 
                 }
