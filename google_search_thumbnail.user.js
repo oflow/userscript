@@ -3,6 +3,7 @@
 // @description    Google検索のサムネを別のやつに変える
 // @namespace      http://oflow.me/archives/1066
 // @compatibility  Firefox 31-39 (Greasemonkey), Chrome 37 (Tampermonkey)
+// @include        https://www.bing.com/search*
 // @include        http://www.bing.com/search*
 // @include        https://www.google.tld/search*
 // @include        https://www.google.tld/webhp*
@@ -21,10 +22,12 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.7
+// @version        1.0.8
 // ==/UserScript==
 
 /*
+ * 20150727
+ *     bing検索に.gなどないのでCSS修正とAutoPagerize併用でもなんとか動くように修正
  * 20150727
  *     div.gにクラス名追加してたらAutoPagerizeが動かなくなるのでdata-***に変更
  *     "pageElement": "id('res')// (略) /div[@class='g']" ←これ
@@ -85,51 +88,52 @@
 
     var css = '\
          /* 高さ調整 */\
-        .g[data-thumbshots],\
-        .g[data-thumbshots] > .vsc {\
+        [data-thumbshots],\
+        [data-thumbshots] > .vsc {\
             min-height: 93px;\
         }\
         /* 画像の枠とかは他のボタンと同じような感じ */\
-        .g[data-thumbshots] .thumb img {\
+        [data-thumbshots] .thumb img {\
             width: 111px; height: 82px;\
             position: absolute; display: inline-block;\
             border: 3px solid #f1f1f1; outline: 1px solid #d5d5d5;\
             margin-top: 3px; z-index: 2;\
         }\
         /* img:hover */\
-        .g[data-thumbshots] .thumb:hover img { outline-color: #c1c1c1; }\
+        [data-thumbshots] .thumb:hover img { outline-color: #c1c1c1; }\
         /* img:active */\
-        .g[data-thumbshots] .thumb:active img { outline-color: #4d90fe; }\
+        [data-thumbshots] .thumb:active img { outline-color: #4d90fe; }\
         /* 画像挿入するので位置調整 */\
-        .g[data-thumbshots] > .rc,\
-        .g[data-thumbshots] > div:not([class]),\
-        .g[data-thumbshots] > .vsc,\
-        .g[data-thumbshots].b_algo > h2,\
-        .g[data-thumbshots].b_algo > div,\
-        .g[data-thumbshots] > .ts,\
-        .g[data-thumbshots] > .mbl {\
+        [data-thumbshots] > .rc,\
+        [data-thumbshots] > div:not([class]),\
+        [data-thumbshots] > .vsc,\
+        [data-thumbshots].b_algo > h2,\
+        [data-thumbshots].b_algo > div,\
+        [data-thumbshots] > .ts,\
+        [data-thumbshots] > .mbl {\
             margin-left: 126px;\
         }\
         /* サイトリンクの位置調整 */\
-        .g[data-thumbshots] > div > .nrgt {\
+        [data-thumbshots] > div > .nrgt {\
             margin-left: 10px !important; width: 420px !important;\
         }\
         /* サイトリンクの幅調整 */\
-        .g[data-thumbshots] .mslg .vsc {\
+        [data-thumbshots] .mslg .vsc {\
             width: 200px !important;\
         }\
-        .g[data-thumbshots] .mslg .vsc .st {\
+        [data-thumbshots] .mslg .vsc .st {\
             width: 190px !important;\
         }\
         /* Yahoo */\
-        .g[data-thumbshots] > .hd, .g[data-thumbshots] > .bd {\
+        [data-thumbshots] > .hd,\
+        [data-thumbshots] > .bd {\
             margin-left: 126px;\
         }\
         /* Amazonの商品画像は高さが違うので調整 */\
-        .g[data-thumbshots="amazon"] .thumb img {\
+        [data-thumbshots="amazon"] .thumb img {\
             height: 120px; border-color: transparent; outline-width: 0;\
         }\
-        .g[data-thumbshots="amazon"] {\
+        [data-thumbshots="amazon"] {\
             min-height: 125px !important;\
         }\
         /* 画像投稿サービス */\
@@ -137,52 +141,39 @@
             width: auto; height: auto; max-width: 111px; max-height: 93px;\
         }\
         /* 動画サムネの背景が黒になってたり枠線付いてるので消す */\
-        .g[data-thumb-type="video"] .s .th {\
+        [data-thumb-type="video"] .s .th {\
             overflow: visible !important;\
             background: transparent !important; border: 0 !important; z-index: 200;\
         }\
-        .g[data-thumb-type="video"] .s .th a { border: 0 !important; }\
+        [data-thumb-type="video"] .s .th a { border: 0 !important; }\
         /* 本来のサムネを消す */\
-        .g[data-thumb-type="video"] .th img { display: none !important; }\
+        [data-thumb-type="video"] .th img { display: none !important; }\
         /* ► 3:20 とか時間表示は残す */\
-        .g[data-thumb-type="video"] .th .vdur {\
+        [data-thumb-type="video"] .th .vdur {\
             position: absolute !imoportant;\
             right: auto !important; left: -123px;\
             margin-bottom: 3px; z-index: 200;\
         }\
         /* 動画用の位置調整 */\
-        .g[data-thumb-type="video"] .s > div { position: absolute !important; margin-left: 0 !important; }\
-        .g[data-thumb-type="video"] img[class*="vidthumb"] { display: none !important; }\
+        [data-thumb-type="video"] .s > div { position: absolute !important; margin-left: 0 !important; }\
+        [data-thumb-type="video"] img[class*="vidthumb"] { display: none !important; }\
         /* ～の他の動画≫ */\
-        .g[data-thumb-type="video"] .vsc + div { margin-top: 12px !important; }\
+        [data-thumb-type="video"] .vsc + div { margin-top: 12px !important; }\
     '.replace(/\s+/g, ' ');
 
 
-    var bingThumbnail = {
-        init: function () {
-            GM_addStyle(css);
-            //document.body.addEventListener('DOMNodeInserted', this, false);
-            //window.addEventListener('unload', this, false);
-            this.checkResult(document.body);
-        },
-        checkResult: function (elm) {
-            var a, li = elm.querySelectorAll('#b_results > .b_algo');
-            for (i = 0; i < li.length; i += 1) {
-                a = li[i].getElementsByTagName('a')[0];
-                if (!a) {
-                    continue;
-                }
-//                console.log(a.href);
-                googleThumbnail.setWebnail(li[i], a.href);
-            }
-        }
-    };
     var googleThumbnail = {
         init: function () {
             GM_addStyle(css);
             document.body.addEventListener('DOMNodeInserted', this, false);
             window.addEventListener('unload', this, false);
             this.checkResult(document.body);
+        },
+        initBing: function() {
+            GM_addStyle(css);
+            document.body.addEventListener('DOMNodeInserted', this, false);
+            window.addEventListener('unload', this, false);
+            this.checkBing(document.body);
         },
         handleEvent: function (event) {
             var elm = event.target, i;
@@ -199,8 +190,14 @@
                     // console.debug(elm.nodeName, elm.id, elm.className);
                     // Ajaxで追加         = LI
                     // AutoPagerizeで追加 = OL
-                    // 2015-07-23ぐらいの仕様変更でLI, OLだったものがDIV厨になった
-                    this.checkResult(elm);
+                    // 仕様変更でLI, OLだったものがDIV厨になった
+                    // ということでLI追加はBing検索だけだろうと思う
+                    if (elm.className.indexOf('b_algo') != -1) {
+                        this.checkBing(elm);
+                    } else {
+                        // 念のため残す
+                        this.checkResult(elm);
+                    }
                 }
                 break;
             case 'unload':
@@ -213,6 +210,21 @@
                     this.remove(elm);
                 }
                 break;
+            }
+        },
+        checkBing: function (elm) {
+            var li, a;
+            if (elm.nodeName == 'LI' && elm.className.indexOf('b_algo') != -1) {
+                a = elm.getElementsByTagName('a')[0];
+                if (!a) {
+                    return;
+                }
+                this.setWebnail(elm, a.href);
+            } else {
+                li = elm.querySelectorAll('#b_results > .b_algo');
+                for (i = 0; i < li.length; i += 1) {
+                    this.checkBing(li[i]);
+                }
             }
         },
         checkResult: function (elm) {
@@ -311,7 +323,7 @@
         }
     };
     if (location.href.indexOf('www.bing.com') != -1) {
-        bingThumbnail.init();
+        googleThumbnail.initBing();
     }
     if (location.href.indexOf('www.google.') != -1) {
         googleThumbnail.init();
