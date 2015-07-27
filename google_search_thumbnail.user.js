@@ -172,7 +172,7 @@
                 if (!a) {
                     continue;
                 }
-                console.log(a.href);
+//                console.log(a.href);
                 googleThumbnail.setWebnail(li[i], a.href);
             }
         }
@@ -315,7 +315,5 @@
     }
     if (location.href.indexOf('www.google.') != -1) {
         googleThumbnail.init();
-console.log('0');
-
     }
 })();
