@@ -21,10 +21,13 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.6
+// @version        1.0.7
 // ==/UserScript==
 
 /*
+ * 20150727
+ *     div.gにクラス名追加してたらAutoPagerizeが動かなくなるのでdata-***に変更
+ *     "pageElement": "id('res')// (略) /div[@class='g']" ←これ
  * 20150724
  *     AutoPagerizeを使っているとき2ページ目以降にサムネイル付かないのをまた修正
  * 20150215
@@ -63,72 +66,70 @@
  *     NinjaKitのJSLintで怒られないように修正
  * @memo
  *     li.g > div.vsc が li.g > div.rc になってる
- *     インスタントプレビューなくなったかもしれん
+ *     li.gだったのがdiv.gになってる
  */
 
 (function () {
     var url = {
         thumbshots: 'https://%[w]%.searchpreview.de/preview?s=%url%',
         amazon: 'http://images-jp.amazon.com/images/P/%asin%.09._AA120_.jpg',
-        youtube: 'http://i.ytimg.com/vi/%id%/default.jpg',
-        nicovideo: 'http://tn-skr%number%.smilevideo.jp/smile?i=%id%',
-        twipple: 'http://p.twipple.jp/show/thumb/%id%'
+        youtube: 'https://i.ytimg.com/vi/%id%/default.jpg',
+        nicovideo: 'http://tn-skr%number%.smilevideo.jp/smile?i=%id%'
     };
 
     var regexp = {
         asin: /amazon.+(?:dp|ASIN|gp\/product)\/([0-9A-Z]{10})/,
         nicovideo: /(?:www\.nicovideo\.jp\/watch|nico\.ms|nicoviewer\.net|nicozon\.net\/watch|nicosoku\.com\/watch|nico\.oh-web\.jp)\/sm([0-9]+)/,
-        youtube: /www\.youtube\.com\/watch\?.*v=([a-zA-Z0-9_\-]+)/,
-        twipple: /p\.twipple\.jp\/([a-zA-Z0-9]+)/
+        youtube: /www\.youtube\.com\/watch\?.*v=([a-zA-Z0-9_\-]+)/
     };
 
     var css = '\
          /* 高さ調整 */\
-        .thumbshots,\
-        .thumbshots > .vsc {\
+        .g[data-thumbshots],\
+        .g[data-thumbshots] > .vsc {\
             min-height: 93px;\
         }\
         /* 画像の枠とかは他のボタンと同じような感じ */\
-        .thumbshots .thumb img {\
+        .g[data-thumbshots] .thumb img {\
             width: 111px; height: 82px;\
             position: absolute; display: inline-block;\
             border: 3px solid #f1f1f1; outline: 1px solid #d5d5d5;\
             margin-top: 3px; z-index: 2;\
         }\
         /* img:hover */\
-        .thumbshots .thumb:hover img { outline-color: #c1c1c1; }\
+        .g[data-thumbshots] .thumb:hover img { outline-color: #c1c1c1; }\
         /* img:active */\
-        .thumbshots .thumb:active img { outline-color: #4d90fe; }\
+        .g[data-thumbshots] .thumb:active img { outline-color: #4d90fe; }\
         /* 画像挿入するので位置調整 */\
-        .thumbshots > .rc,\
-        .thumbshots > div:not([class]),\
-        .thumbshots > .vsc,\
-        .thumbshots.b_algo > h2,\
-        .thumbshots.b_algo > div,\
-        .thumbshots > .ts,\
-        .thumbshots > .mbl {\
+        .g[data-thumbshots] > .rc,\
+        .g[data-thumbshots] > div:not([class]),\
+        .g[data-thumbshots] > .vsc,\
+        .g[data-thumbshots].b_algo > h2,\
+        .g[data-thumbshots].b_algo > div,\
+        .g[data-thumbshots] > .ts,\
+        .g[data-thumbshots] > .mbl {\
             margin-left: 126px;\
         }\
         /* サイトリンクの位置調整 */\
-        .thumbshots > div > .nrgt {\
+        .g[data-thumbshots] > div > .nrgt {\
             margin-left: 10px !important; width: 420px !important;\
         }\
         /* サイトリンクの幅調整 */\
-        .thumbshots .mslg .vsc {\
+        .g[data-thumbshots] .mslg .vsc {\
             width: 200px !important;\
         }\
-        .thumbshots .mslg .vsc .st {\
+        .g[data-thumbshots] .mslg .vsc .st {\
             width: 190px !important;\
         }\
         /* Yahoo */\
-        .thumbshots > .hd, .thumbshots > .bd {\
+        .g[data-thumbshots] > .hd, .g[data-thumbshots] > .bd {\
             margin-left: 126px;\
         }\
         /* Amazonの商品画像は高さが違うので調整 */\
-        .amazon .thumb img {\
+        .g[data-thumbshots="amazon"] .thumb img {\
             height: 120px; border-color: transparent; outline-width: 0;\
         }\
-        .amazon {\
+        .g[data-thumbshots="amazon"] {\
             min-height: 125px !important;\
         }\
         /* 画像投稿サービス */\
@@ -136,24 +137,24 @@
             width: auto; height: auto; max-width: 111px; max-height: 93px;\
         }\
         /* 動画サムネの背景が黒になってたり枠線付いてるので消す */\
-        .video .s .th {\
+        .g[data-thumb-type="video"] .s .th {\
             overflow: visible !important;\
             background: transparent !important; border: 0 !important; z-index: 200;\
         }\
-        .video .s .th a { border: 0 !important; }\
+        .g[data-thumb-type="video"] .s .th a { border: 0 !important; }\
         /* 本来のサムネを消す */\
-        .video .th img { display: none !important; }\
+        .g[data-thumb-type="video"] .th img { display: none !important; }\
         /* ► 3:20 とか時間表示は残す */\
-        .video .th .vdur {\
+        .g[data-thumb-type="video"] .th .vdur {\
             position: absolute !imoportant;\
             right: auto !important; left: -123px;\
             margin-bottom: 3px; z-index: 200;\
         }\
         /* 動画用の位置調整 */\
-        .video .s > div { position: absolute !important; margin-left: 0 !important; }\
-        .video img[class*="vidthumb"] { display: none !important; }\
+        .g[data-thumb-type="video"] .s > div { position: absolute !important; margin-left: 0 !important; }\
+        .g[data-thumb-type="video"] img[class*="vidthumb"] { display: none !important; }\
         /* ～の他の動画≫ */\
-        .video .vsc + div { margin-top: 12px !important; }\
+        .g[data-thumb-type="video"] .vsc + div { margin-top: 12px !important; }\
     '.replace(/\s+/g, ' ');
 
 
@@ -187,18 +188,19 @@
             var elm = event.target, i;
             switch (event.type) {
             case 'DOMNodeInserted':
-                if (elm.nodeName == 'LI' || elm.nodeName == 'OL') {
-                    // console.debug(elm.nodeName, elm.id, elm.className);
-                    // Ajaxで追加         = LI
-                    // AutoPagerizeで追加 = OL
-                    this.checkResult(elm);
-                } else if (elm.nodeName == 'DIV' && (elm.getAttribute('data-ved') || elm.id == 'ires' || elm.className == 'g')) {
+                if (elm.nodeName == 'DIV' && (elm.getAttribute('data-ved') || elm.id == 'ires' || elm.className == 'g')) {
                     // console.debug(elm);
                     // 2012-08-17 ajaxで追加
                     // 2014-10-31 div[data-ved="hogehoge"]になった
                     // 2015-07-24 AutoPagerizeで div.g が追加される
                     this.checkResult(elm);
 
+                } else if (elm.nodeName == 'LI' || elm.nodeName == 'OL') {
+                    // console.debug(elm.nodeName, elm.id, elm.className);
+                    // Ajaxで追加         = LI
+                    // AutoPagerizeで追加 = OL
+                    // 2015-07-23ぐらいの仕様変更でLI, OLだったものがDIV厨になった
+                    this.checkResult(elm);
                 }
                 break;
             case 'unload':
@@ -214,20 +216,20 @@
             }
         },
         checkResult: function (elm) {
-            var g = (elm.className == 'g' ? [elm] : elm.getElementsByClassName('g')),
-                length = g.length,
-                i, a, li, div;
+            var elms = (elm.className == 'g' ? [elm] : elm.getElementsByClassName('g')),
+                length = elms.length,
+                i, a, g, div;
 
-            // li.g > a > img.thumbshots
-            // li.g > div.vsc > h3
+            // div.g > a > img.thumbshots
+            // div.g > div.vsc > h3
             for (i = 0; i < length; i += 1) {
-                li = g[i];
+                g = elms[i];
                 // .g に id, 他のclass が付いてたらたぶん違う
                 // #newsbox, #imagebox_bigimages
-                if (li.id || li.className != 'g') {
+                if (g.id || g.className != 'g') {
                     continue;
                 }
-                a = li.getElementsByTagName('a')[0];
+                a = g.getElementsByTagName('a')[0];
                 if (!a) {
                     continue;
                 }
@@ -240,72 +242,72 @@
                     a.setAttribute('onmousedown', '');
                 }
                 // 子要素に div.vresult がある場合はやめとく(動画の横並びの時など
-                if (li.getElementsByClassName('vresult')[0]) {
+                if (g.getElementsByClassName('vresult')[0]) {
                     continue;
                 }
                 // 子要素に div.vsc.vslru がある場合はたぶん地図付き
-                div = li.getElementsByTagName('div')[0];
+                div = g.getElementsByTagName('div')[0];
                 if (!div) {
                     continue;
                 } else if (div.className == 'vsc') {
                     // .vslru は後でつく
                     if (div.getAttribute('data-extra')) {
                         if (div.getAttribute('data-extra').indexOf('ludocid') != -1) {
-                            a = li.getElementsByTagName('a')[1];
-                            li.removeAttribute('style');
+                            a = g.getElementsByTagName('a')[1];
+                            g.removeAttribute('style');
                         }
                     }
                 }
 
-                this.setWebnail(li, a.href);
+                this.setWebnail(g, a.href);
             }
         },
-        setWebnail: function (li, href) {
+        setWebnail: function (g, href) {
             var id,
                 w   = 'abcdefghijklmnopqrstuvwxyz',
                 a   = document.createElement('a'),
                 img = document.createElement('img');
-
+                
             a.href = href;
             a.className = 'thumb';
             if (regexp.asin.test(href)) {
                 // アマゾンっぽかったら商品画像
-                li.className += ' amazon';
+                //g.className += ' amazon';
+                g.setAttribute('data-thumbshots', 'amazon');
                 img.src = url.amazon.replace('%asin%', RegExp.$1);
                 img.addEventListener('load', this, false);
             } else if (regexp.youtube.test(href)) {
                 // Youtube
-                li.className += ' video youtube';
+                g.setAttribute('data-thumbshots', 'youtube');
+                g.setAttribute('data-thumb-type', 'video');
                 img.src = url.youtube.replace('%id%', RegExp.$1);
             } else if (regexp.nicovideo.test(href)) {
                 // ニコニコ動画
                 id = RegExp.$1;
-                li.className += ' video nicovideo';
+                g.setAttribute('data-thumb-type', 'nicovideo')
+                g.setAttribute('data-thumbshots', 'video');
                 img.src = url.nicovideo.replace('%id%', id)
                                        .replace('%number%', (parseInt(id, 10) % 4 + 1));
-            } else if (regexp.twipple.test(href)) {
-                // 情弱
-                li.className += ' photo';
-                img.src = url.twipple.replace('%id%', RegExp.$1);
+
             } else {
-                if (li.getAttribute('style')) {
+                if (g.getAttribute('style')) {
                     return;
                 }
                 // 他はサムネ追加
                 href = encodeURIComponent(href);
                 w = w.charAt(Math.floor(Math.random() * 24));
                 img.src = url.thumbshots.replace('%url%', href).replace('%[w]%', w);
+                g.setAttribute('data-thumbshots', '_');
             }
 
             a.appendChild(img);
-            li.className += ' thumbshots';
-            li.insertBefore(a, li.firstChild);
+            g.insertBefore(a, g.firstChild);
         },
         remove: function (elm) {
             elm.removeEventListener('load', this, false);
-            var li = elm.parentNode.parentNode;
-            li.className = li.className.replace(/\s(?:amazon|thumbshots|nicovideo)/g, '');
-            li.removeChild(elm.parentNode);
+            var g = elm.parentNode.parentNode;
+            g.removeAttribute('data-thumbshots');
+            g.removeChild(elm.parentNode);
         }
     };
     if (location.href.indexOf('www.bing.com') != -1) {
@@ -313,5 +315,7 @@
     }
     if (location.href.indexOf('www.google.') != -1) {
         googleThumbnail.init();
+console.log('0');
+
     }
 })();
