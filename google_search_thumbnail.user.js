@@ -22,7 +22,7 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.8
+// @version        1.0.9
 // ==/UserScript==
 
 /*
@@ -74,7 +74,7 @@
 
 (function () {
     var url = {
-        thumbshots: 'https://%[w]%.searchpreview.de/preview?s=%url%',
+        thumbshots: 'https://jp.searchpreview.de/preview?s=%url%',
         amazon: 'http://images-jp.amazon.com/images/P/%asin%.09._AA120_.jpg',
         youtube: 'https://i.ytimg.com/vi/%id%/default.jpg',
         nicovideo: 'http://tn-skr%number%.smilevideo.jp/smile?i=%id%'
@@ -307,8 +307,7 @@
                 }
                 // 他はサムネ追加
                 href = encodeURIComponent(href);
-                w = w.charAt(Math.floor(Math.random() * 24));
-                img.src = url.thumbshots.replace('%url%', href).replace('%[w]%', w);
+                img.src = url.thumbshots.replace('%url%', href);
                 g.setAttribute('data-thumbshots', '_');
             }
 
