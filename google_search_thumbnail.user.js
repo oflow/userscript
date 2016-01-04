@@ -22,10 +22,12 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.9
+// @version        1.0.10
 // ==/UserScript==
 
 /*
+ * 20160104
+ *     fix url
  * 20150727
  *     bing検索に.gなどないのでCSS修正とAutoPagerize併用でもなんとか動くように修正
  * 20150727
@@ -74,7 +76,7 @@
 
 (function () {
     var url = {
-        thumbshots: 'https://jp.searchpreview.de/preview?s=%url%',
+        thumbshots: 'https://jp.searchpreview.de/preview?s=%url%&ua=Firefox&ver=830',
         amazon: 'http://images-jp.amazon.com/images/P/%asin%.09._AA120_.jpg',
         youtube: 'https://i.ytimg.com/vi/%id%/default.jpg',
         nicovideo: 'http://tn-skr%number%.smilevideo.jp/smile?i=%id%'
@@ -161,7 +163,13 @@
         [data-thumb-type="video"] .vsc + div { margin-top: 12px !important; }\
     '.replace(/\s+/g, ' ');
 
-
+    if (typeof GM_addStyle === 'undefined') {
+        var GM_addStyle = function(css) {
+            var s = document.createElement('style');
+            s.appendChild(document.createTextNode(css));
+            document.getElementsByTagName('head')[0].appendChild(s);
+        }
+    }
     var googleThumbnail = {
         init: function () {
             GM_addStyle(css);
@@ -306,7 +314,8 @@
                     return;
                 }
                 // 他はサムネ追加
-                href = encodeURIComponent(href);
+                //href = encodeURIComponent(href);
+                href = href.replace(/(https?:\/\/[^\/]+).*$/, '$1');
                 img.src = url.thumbshots.replace('%url%', href);
                 g.setAttribute('data-thumbshots', '_');
             }
