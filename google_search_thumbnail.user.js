@@ -80,37 +80,6 @@
  */
 
 (function () {
-function throttle(func, wait) {
-    var timeout, context, args, result,
-        previous = 0;
-
-    var later = function() {
-        previous = Date.now();
-        timeout  = null;
-        result   = func.apply(context, args);
-        if (!timeout) context = args = null;
-    };
-    var throttled = function () {
-        var now = Date.now(),
-            remaining = wait - (now - previous);
-
-        context = this;
-        args    = arguments;
-        if (remaining <= 0 || remaining > wait) {
-            if (timeout) {
-                clearTimeout(timeout);
-                timeout = null;
-            }
-            previous = now;
-            result = func.apply(context, args);
-            if (!timeout) context = args = null;
-        } else if (!timeout) {
-            timeout = setTimeout(later, remaining);
-        }
-        return result;
-    };
-    return throttled;
-}
 
     var url = {
         thumbshots: 'https://jp.searchpreview.de/preview?s=%url%&ua=Firefox&ver=830',
