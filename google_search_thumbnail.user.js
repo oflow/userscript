@@ -2,7 +2,7 @@
 // @name           Google search thumbnail
 // @description    Google検索のサムネを別のやつに変える
 // @namespace      http://oflow.me/archives/1066
-// @compatibility  Firefox 31-39 (Greasemonkey), Chrome 37 (Tampermonkey)
+// @compatibility  Firefox 31-54 (Greasemonkey)
 // @include        https://www.bing.com/search*
 // @include        http://www.bing.com/search*
 // @include        https://www.google.tld/search*
@@ -22,10 +22,15 @@
 // @include        http://www.google.tld/#hl=*
 // @include        http://www.google.tld/
 // @grant          GM_addStyle
-// @version        1.0.10
+// @grant          GM_xmlhttpRequest
+// @version        1.0.13
 // ==/UserScript==
 
 /*
+ * 20170627
+ *     Amazonマーケットプレイスのサムネ取得追加
+ * 20161125
+ *     add attribute
  * 20160104
  *     fix url
  * 20150727
@@ -75,9 +80,41 @@
  */
 
 (function () {
+function throttle(func, wait) {
+    var timeout, context, args, result,
+        previous = 0;
+
+    var later = function() {
+        previous = Date.now();
+        timeout  = null;
+        result   = func.apply(context, args);
+        if (!timeout) context = args = null;
+    };
+    var throttled = function () {
+        var now = Date.now(),
+            remaining = wait - (now - previous);
+
+        context = this;
+        args    = arguments;
+        if (remaining <= 0 || remaining > wait) {
+            if (timeout) {
+                clearTimeout(timeout);
+                timeout = null;
+            }
+            previous = now;
+            result = func.apply(context, args);
+            if (!timeout) context = args = null;
+        } else if (!timeout) {
+            timeout = setTimeout(later, remaining);
+        }
+        return result;
+    };
+    return throttled;
+}
+
     var url = {
         thumbshots: 'https://jp.searchpreview.de/preview?s=%url%&ua=Firefox&ver=830',
-        amazon: 'http://images-jp.amazon.com/images/P/%asin%.09._AA120_.jpg',
+        amazon: 'https://images-fe.ssl-images-amazon.com/images/P/%asin%.09._AA120_.jpg',
         youtube: 'https://i.ytimg.com/vi/%id%/default.jpg',
         nicovideo: 'http://tn-skr%number%.smilevideo.jp/smile?i=%id%'
     };
@@ -215,10 +252,25 @@
             case 'load':
                 // Amazonの画像で横幅1pxのがあるので消す
                 if (elm.nodeName == 'IMG' && elm.naturalWidth == 1) {
-                    this.remove(elm);
+//                    this.remove(elm);
+                    this.getAmznThumbnail(elm);
                 }
                 break;
             }
+        },
+        getAmznThumbnail: function(elm) {
+            var href = elm.parentNode.getAttribute('href');
+            GM_xmlhttpRequest({method: 'GET', url: href, onload: res => {
+                if (res.status !== 200) {
+                    elm.parentNode.removeChild(elm);
+                } else {
+                    if (/-dynamic-image="{&quot;https:\/\/[^\/]+\/images\/I\/([^\.]+)\./i.test(res.responseText)) {
+                        elm.src = 'https://images-na.ssl-images-amazon.com/images/I/' + RegExp.$1 + '._AA120_.jpg';
+                    } else {
+                        elm.parentNode.removeChild(elm);
+                    }
+                }
+            }});
         },
         checkBing: function (elm) {
             var li, a;
@@ -238,7 +290,7 @@
         checkResult: function (elm) {
             var elms = (elm.className == 'g' ? [elm] : elm.getElementsByClassName('g')),
                 length = elms.length,
-                i, a, g, div;
+                i, a, g, div, domain;
 
             // div.g > a > img.thumbshots
             // div.g > div.vsc > h3
@@ -253,6 +305,8 @@
                 if (!a) {
                     continue;
                 }
+                domain = a.href.replace(/^https?:\/\//, '').replace(/^([^\/]+).+$/, '$1');
+                g.setAttribute('data-domain', domain);
                 // ニュース検索したときに画像が付いてたらやめる
                 if (a.getElementsByTagName('img')[0]) {
                     continue;
@@ -286,7 +340,8 @@
             var id,
                 w   = 'abcdefghijklmnopqrstuvwxyz',
                 a   = document.createElement('a'),
-                img = document.createElement('img');
+                img = document.createElement('img'),
+                asin = '';
                 
             a.href = href;
             a.className = 'thumb';
@@ -294,7 +349,9 @@
                 // アマゾンっぽかったら商品画像
                 //g.className += ' amazon';
                 g.setAttribute('data-thumbshots', 'amazon');
-                img.src = url.amazon.replace('%asin%', RegExp.$1);
+                asin = RegExp.$1;
+                img.src = url.amazon.replace('%asin%', asin);
+                img.setAttribute('data-asin', asin);
                 img.addEventListener('load', this, false);
             } else if (regexp.youtube.test(href)) {
                 // Youtube
@@ -319,7 +376,6 @@
                 img.src = url.thumbshots.replace('%url%', href);
                 g.setAttribute('data-thumbshots', '_');
             }
-
             a.appendChild(img);
             g.insertBefore(a, g.firstChild);
         },
