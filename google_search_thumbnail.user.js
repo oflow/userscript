@@ -13,20 +13,21 @@
 // @include        https://www.google.tld/#q=*
 // @include        https://www.google.tld/#hl=*
 // @include        https://www.google.tld/
-// @include        http://www.google.tld/search*
-// @include        http://www.google.tld/webhp*
-// @include        http://www.google.tld/#
-// @include        http://www.google.tld/#sclient*
-// @include        http://www.google.tld/#safe*
-// @include        http://www.google.tld/#q=*
-// @include        http://www.google.tld/#hl=*
-// @include        http://www.google.tld/
+// @include        https://www.qwant.com/*
 // @grant          GM_addStyle
 // @grant          GM_xmlhttpRequest
-// @version        1.0.13
+// @version        1.0.16
 // ==/UserScript==
 
 /*
+ * 20191031
+ *     AutoPagerizeで動かない場合に対応
+ *     混在コンテンツになりそうな画像削除
+ *     動画付きの場合に文字が重なっていたので高さ調整
+ * 20190912
+ *     .g[id^="cs"] の場合がある
+ * 20181127
+ *     Qwant
  * 20170627
  *     Amazonマーケットプレイスのサムネ取得追加
  * 20161125
@@ -118,7 +119,14 @@
         [data-thumbshots].b_algo > h2,\
         [data-thumbshots].b_algo > div,\
         [data-thumbshots] > .ts,\
-        [data-thumbshots] > .mbl {\
+        [data-thumbshots] > .mbl,\
+        [data-thumbshots][data-domain="twitter.com"] > .s,\
+        /* section-with-header */\
+        [data-thumbshots] > g-section-with-header,\
+        /* Qwant */\
+        .result--web[data-thumbshots] > div,\
+        .result--web[data-thumbshots] > h3,\
+        .result--web[data-thumbshots] > p {\
             margin-left: 126px;\
         }\
         /* サイトリンクの位置調整 */\
@@ -163,6 +171,7 @@
             margin-bottom: 3px; z-index: 200;\
         }\
         /* 動画用の位置調整 */\
+        [data-thumbshots][data-thumb-type="video"] { min-height: 132px !important; }\
         [data-thumb-type="video"] .s > div { position: absolute !important; margin-left: 0 !important; }\
         [data-thumb-type="video"] img[class*="vidthumb"] { display: none !important; }\
         /* ～の他の動画≫ */\
@@ -189,17 +198,29 @@
             window.addEventListener('unload', this, false);
             this.checkBing(document.body);
         },
+        qwant: function() {
+            GM_addStyle(css);
+            document.body.addEventListener('DOMNodeInserted', this, false);
+            window.addEventListener('unload', this, false);
+            this.checkQwant(document.body);
+        },
         handleEvent: function (event) {
             var elm = event.target, i;
             switch (event.type) {
             case 'DOMNodeInserted':
-                if (elm.nodeName == 'DIV' && (elm.getAttribute('data-ved') || elm.id == 'ires' || elm.className == 'g')) {
-                    // console.debug(elm);
-                    // 2012-08-17 ajaxで追加
-                    // 2014-10-31 div[data-ved="hogehoge"]になった
-                    // 2015-07-24 AutoPagerizeで div.g が追加される
-                    this.checkResult(elm);
-
+                if (elm.nodeName == 'DIV') {
+                    if (elm.getAttribute('data-ved') || elm.querySelector('.g') || elm.className == 'g') {
+                        // console.debug(elm);
+                        // 2019-10-31 AutoPagerizeで動かなかったので#ires,#rsoあたりはquerySelector('.g')
+                        // 2019-09-12 rso
+                        // 2012-08-17 ajaxで追加
+                        // 2014-10-31 div[data-ved="hogehoge"]になった
+                        // 2015-07-24 AutoPagerizeで div.g が追加される
+                        this.checkResult(elm);
+                    } else if (elm.className.indexOf('result--web') !== -1) {
+                        // qwant search
+                        this.checkQwant(elm);
+                    }
                 } else if (elm.nodeName == 'LI' || elm.nodeName == 'OL') {
                     // console.debug(elm.nodeName, elm.id, elm.className);
                     // Ajaxで追加         = LI
@@ -241,7 +262,7 @@
                 }
             }});
         },
-        checkBing: function (elm) {
+        checkBing: function(elm) {
             var li, a;
             if (elm.nodeName == 'LI' && elm.className.indexOf('b_algo') != -1) {
                 a = elm.getElementsByTagName('a')[0];
@@ -256,6 +277,20 @@
                 }
             }
         },
+        checkQwant: function(elm) {
+            if (elm.nodeName === 'DIV') {
+                var a = elm.querySelector('a');
+                this.setWebnail(elm, a.href);
+            } else {
+                var res = document.querySelectorAll('.result--web');
+                res.forEach((r) => {
+                    var a = r.getElementsByTagName('a')[0];
+                    if (a) {
+                        this.setWebnail(r, a.href);
+                    }
+                }, this);
+            }
+        },
         checkResult: function (elm) {
             var elms = (elm.className == 'g' ? [elm] : elm.getElementsByClassName('g')),
                 length = elms.length,
@@ -267,7 +302,7 @@
                 g = elms[i];
                 // .g に id, 他のclass が付いてたらたぶん違う
                 // #newsbox, #imagebox_bigimages
-                if (g.id || g.className != 'g') {
+                if (g.className != 'g') {
                     continue;
                 }
                 a = g.getElementsByTagName('a')[0];
@@ -327,15 +362,7 @@
                 g.setAttribute('data-thumbshots', 'youtube');
                 g.setAttribute('data-thumb-type', 'video');
                 img.src = url.youtube.replace('%id%', RegExp.$1);
-            } else if (regexp.nicovideo.test(href)) {
-                // ニコニコ動画
-                id = RegExp.$1;
-                g.setAttribute('data-thumb-type', 'nicovideo')
-                g.setAttribute('data-thumbshots', 'video');
-                img.src = url.nicovideo.replace('%id%', id)
-                                       .replace('%number%', (parseInt(id, 10) % 4 + 1));
-
-            } else {
+           } else {
                 if (g.getAttribute('style')) {
                     return;
                 }
@@ -355,6 +382,9 @@
             g.removeChild(elm.parentNode);
         }
     };
+    if (location.href.indexOf('www.qwant.com') != -1) {
+        googleThumbnail.qwant();
+    }
     if (location.href.indexOf('www.bing.com') != -1) {
         googleThumbnail.initBing();
     }
