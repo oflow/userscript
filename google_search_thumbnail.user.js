@@ -13,13 +13,22 @@
 // @include        https://www.google.tld/#q=*
 // @include        https://www.google.tld/#hl=*
 // @include        https://www.google.tld/
-// @include        https://www.qwant.com/*
 // @grant          GM_addStyle
 // @grant          GM_xmlhttpRequest
-// @version        1.0.16
+// @version        1.0.20
+// @updateURL      https://oflow.me/file/google_search_thumbnail.user.js
 // ==/UserScript==
 
 /*
+ * 20210601
+ *     サムネイル重複
+ * 20200722
+ *     ズレやすかったGoogleをdisplay: flex;に変更
+ *     QwantはCSPで読み込めないから削除
+ * 20200611
+ *     ニュース検索でのサムネ
+ * 20191220
+ *     未ログインのとき出てなかった
  * 20191031
  *     AutoPagerizeで動かない場合に対応
  *     混在コンテンツになりそうな画像削除
@@ -96,17 +105,38 @@
     };
 
     var css = '\
+        [data-thumbshots] .thumb img {\
+            position: absolute;\
+        }\
+        .g[data-thumbshots] .g .thumb {\
+            display: none;\
+        }\
+        .g[data-thumbshots] {\
+            display: flex; \
+        }\
+        .g[data-thumbshots] .thumb {\
+            /*margin-right: 8px; */\
+        }\
+        .g[data-thumbshots] .thumb img {\
+            position: relative;\
+        }\
          /* 高さ調整 */\
         [data-thumbshots],\
         [data-thumbshots] > .vsc {\
             min-height: 93px;\
         }\
+        [data-thumbshots] > .rc {\
+        }\
         /* 画像の枠とかは他のボタンと同じような感じ */\
         [data-thumbshots] .thumb img {\
             width: 111px; height: 82px;\
-            position: absolute; display: inline-block;\
+            display: inline-block;\
             border: 3px solid #f1f1f1; outline: 1px solid #d5d5d5;\
             margin-top: 3px; z-index: 2;\
+        }\
+        .kno-ahide [data-thumbshots] .thumb,\
+        .kno-ahide [data-thumbshots] .thumb img {\
+            visibility: hidden;\
         }\
         /* img:hover */\
         [data-thumbshots] .thumb:hover img { outline-color: #c1c1c1; }\
@@ -116,17 +146,16 @@
         [data-thumbshots] > .rc,\
         [data-thumbshots] > div:not([class]),\
         [data-thumbshots] > .vsc,\
-        [data-thumbshots].b_algo > h2,\
-        [data-thumbshots].b_algo > div,\
         [data-thumbshots] > .ts,\
         [data-thumbshots] > .mbl,\
         [data-thumbshots][data-domain="twitter.com"] > .s,\
         /* section-with-header */\
-        [data-thumbshots] > g-section-with-header,\
-        /* Qwant */\
-        .result--web[data-thumbshots] > div,\
-        .result--web[data-thumbshots] > h3,\
-        .result--web[data-thumbshots] > p {\
+        [data-thumbshots] > g-section-with-header {\
+            margin-left: 12px;\
+        }\
+        /* bing */\
+        [data-thumbshots].b_algo > h2,\
+        [data-thumbshots].b_algo > div {\
             margin-left: 126px;\
         }\
         /* サイトリンクの位置調整 */\
@@ -136,6 +165,9 @@
         /* サイトリンクの幅調整 */\
         [data-thumbshots] .mslg .vsc {\
             width: 200px !important;\
+        }\
+        [data-thumbshots] cite {\
+            white-space: nowrap;\
         }\
         [data-thumbshots] .mslg .vsc .st {\
             width: 190px !important;\
@@ -294,31 +326,54 @@
         checkResult: function (elm) {
             var elms = (elm.className == 'g' ? [elm] : elm.getElementsByClassName('g')),
                 length = elms.length,
-                i, a, g, div, domain;
-
+                i, a, href, g, h3, div, domain;
             // div.g > a > img.thumbshots
             // div.g > div.vsc > h3
             for (i = 0; i < length; i += 1) {
                 g = elms[i];
+                if (h3 = g.querySelector('h3')) {
+                    if (a = h3.querySelector('a')) {
+                    } else {
+                        a = h3.parentNode;
+                    }
+                } else {
+                    a = g.querySelector('a');
+                }
                 // .g に id, 他のclass が付いてたらたぶん違う
                 // #newsbox, #imagebox_bigimages
                 if (g.className != 'g') {
+                    ['data-ved', 'data-usg', 'data-jsarwt', 'onmousedown'].forEach(d => {
+                        if (a.hasAttribute(d)) {
+                            a.removeAttribute(d);
+                        }
+                    });
                     continue;
                 }
-                a = g.getElementsByTagName('a')[0];
+
                 if (!a) {
                     continue;
                 }
-                domain = a.href.replace(/^https?:\/\//, '').replace(/^([^\/]+).+$/, '$1');
+                href = a.href;
+                if (href.indexOf('/url') === 0) {
+                    href = encodeURIComponent(href.replace(/^.+&url=/, '').replace(/&usg=.+$/, ''));
+                }
+                ['class', 'data-ved', 'data-usg', 'data-jsarwt', 'onmousedown'].forEach(d => {
+                    if (a.hasAttribute(d)) {
+                        a.removeAttribute(d);
+                    }
+                });
+                ['data-chref', 'onmousedown'].forEach(d => {
+                    a.setAttribute(d, '');
+                })
+
+                domain = href.replace(/^https?:\/\//, '').replace(/^([^\/]+).+$/, '$1');
                 g.setAttribute('data-domain', domain);
-                // ニュース検索したときに画像が付いてたらやめる
-                if (a.getElementsByTagName('img')[0]) {
+                // ニュース検索したときとか画像が付いてたらやめる
+                // ログインしてない場合はfaviconがある
+                if (g.querySelector('img') && !a.querySelector('cite')) {
                     continue;
                 }
-                // onmosedown は削除しないで空にしとく
-                if (a.hasAttribute('onmousedown')) {
-                    a.setAttribute('onmousedown', '');
-                }
+
                 // 子要素に div.vresult がある場合はやめとく(動画の横並びの時など
                 if (g.getElementsByClassName('vresult')[0]) {
                     continue;
@@ -337,7 +392,7 @@
                     }
                 }
 
-                this.setWebnail(g, a.href);
+                this.setWebnail(g, href);
             }
         },
         setWebnail: function (g, href) {
@@ -392,3 +447,5 @@
         googleThumbnail.init();
     }
 })();
+
+
